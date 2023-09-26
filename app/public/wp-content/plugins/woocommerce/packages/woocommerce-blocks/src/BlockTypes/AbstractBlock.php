@@ -76,14 +76,16 @@ abstract class AbstractBlock {
 	 *
 	 * @param array|WP_Block $attributes Block attributes, or an instance of a WP_Block. Defaults to an empty array.
 	 * @param string         $content    Block content. Default empty string.
+	 * @param WP_Block|null  $block      Block instance.
 	 * @return string Rendered block type output.
 	 */
-	public function render_callback( $attributes = [], $content = '' ) {
+	public function render_callback( $attributes = [], $content = '', $block = null ) {
+
 		$render_callback_attributes = $this->parse_render_callback_attributes( $attributes );
 		if ( ! is_admin() && ! WC()->is_rest_api_request() ) {
 			$this->enqueue_assets( $render_callback_attributes );
 		}
-		return $this->render( $render_callback_attributes, $content );
+		return $this->render( $render_callback_attributes, $content, $block );
 	}
 
 	/**
@@ -172,7 +174,28 @@ abstract class AbstractBlock {
 	}
 
 	/**
+	 * Generate an array of chunks paths for loading translation.
+	 *
+	 * @param string $chunks_folder The folder to iterate over.
+	 * @return string[] $chunks list of chunks to load.
+	 */
+	protected function get_chunks_paths( $chunks_folder ) {
+		$build_path = \Automattic\WooCommerce\Blocks\Package::get_path() . 'build/';
+		$blocks     = [];
+		if ( ! is_dir( $build_path . $chunks_folder ) ) {
+			return [];
+		}
+		foreach ( new \RecursiveIteratorIterator( new \RecursiveDirectoryIterator( $build_path . $chunks_folder ) ) as $block_name ) {
+			$blocks[] = str_replace( $build_path, '', $block_name );
+		}
+
+		$chunks = preg_filter( '/.js/', '', $blocks );
+		return $chunks;
+	}
+	/**
 	 * Registers the block type with WordPress.
+	 *
+	 * @return string[] Chunks paths.
 	 */
 	protected function register_block_type() {
 		$block_settings = [
@@ -189,7 +212,7 @@ abstract class AbstractBlock {
 		$metadata_path = $this->asset_api->get_block_metadata_path( $this->block_name );
 		// Prefer to register with metadata if the path is set in the block's class.
 		if ( ! empty( $metadata_path ) ) {
-			register_block_type(
+			register_block_type_from_metadata(
 				$metadata_path,
 				$block_settings
 			);
@@ -201,8 +224,9 @@ abstract class AbstractBlock {
 		 * These are left unset until now and only added here because if they were set when registering with metadata,
 		 * the attributes and supports from $block_settings would override the values from metadata.
 		 */
-		$block_settings['attributes'] = $this->get_block_type_attributes();
-		$block_settings['supports']   = $this->get_block_type_supports();
+		$block_settings['attributes']   = $this->get_block_type_attributes();
+		$block_settings['supports']     = $this->get_block_type_supports();
+		$block_settings['uses_context'] = $this->get_block_type_uses_context();
 
 		register_block_type(
 			$this->get_block_type(),
@@ -262,7 +286,7 @@ abstract class AbstractBlock {
 	 *
 	 * @see $this->register_block_type()
 	 * @param string $key Data to get, or default to everything.
-	 * @return array|string
+	 * @return array|string|null
 	 */
 	protected function get_block_type_script( $key = null ) {
 		$script = [
@@ -276,11 +300,15 @@ abstract class AbstractBlock {
 	/**
 	 * Get the frontend style handle for this block type.
 	 *
-	 * @see $this->register_block_type()
-	 * @return string|null
+	 * @return string[]|null
 	 */
 	protected function get_block_type_style() {
-		return 'wc-blocks-style';
+		if ( wc_current_theme_is_fse_theme() ) {
+			$this->asset_api->register_style( 'wc-blocks-style-' . $this->block_name, $this->asset_api->get_block_asset_build_path( $this->block_name, 'css' ), [], 'all', true );
+			return [ 'wc-blocks-style', 'wc-blocks-style-' . $this->block_name ];
+		}
+
+		return [ 'wc-all-blocks-style' ];
 	}
 
 	/**
@@ -303,6 +331,15 @@ abstract class AbstractBlock {
 	}
 
 	/**
+	 * Get block usesContext.
+	 *
+	 * @return array;
+	 */
+	protected function get_block_type_uses_context() {
+		return [];
+	}
+
+	/**
 	 * Parses block attributes from the render_callback.
 	 *
 	 * @param array|WP_Block $attributes Block attributes, or an instance of a WP_Block. Defaults to an empty array.
@@ -315,11 +352,12 @@ abstract class AbstractBlock {
 	/**
 	 * Render the block. Extended by children.
 	 *
-	 * @param array  $attributes Block attributes.
-	 * @param string $content    Block content.
+	 * @param array    $attributes Block attributes.
+	 * @param string   $content    Block content.
+	 * @param WP_Block $block      Block instance.
 	 * @return string Rendered block type output.
 	 */
-	protected function render( $attributes, $content ) {
+	protected function render( $attributes, $content, $block ) {
 		return $content;
 	}
 

@@ -1492,6 +1492,7 @@ sup {
 .post-date + span.meta-sep,
 .post-author + span.meta-sep {
   display: inline;
+  color: #000 !important;
 }
 
 .post-content {
@@ -2645,6 +2646,7 @@ body:not(.elementor-page) .gallery-item {
 .rpwwt-post-comments-number {
   font-size: 13px;
   font-style: italic;
+  color: #000 !important;
 }
 
 /* Facebook Widget */
@@ -2999,7 +3001,8 @@ body,
 .woocommerce .page-content ul.products li.product .button,
 .page-content .woocommerce ul.products li.product .button,
 .woocommerce-Reviews .woocommerce-review__published-date {
-  font-size: 11px;
+  font-size: 14px;
+  color: black !important;
 }
 
 .woocommerce-Reviews .woocommerce-review__author {

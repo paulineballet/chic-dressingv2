@@ -1,0 +1,1 @@
+2023/09/22 12:27:58 [error] 4896#14056: *5968 upstream timed out (10060: FormatMessage() error:(15100)) while reading response header from upstream, client: 127.0.0.1, server: , request: "GET / HTTP/1.0", upstream: "fastcgi://127.0.0.1:10016", host: "chic-dressingv2.local"
